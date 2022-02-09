@@ -29,6 +29,7 @@ segnale_uscita_spacchettato = []
 logging.basicConfig(filename=file_log,level=logging.INFO)
 #logging.basicConfig(level=logging.DEBUG)
 ######################## Codice Personale qui ##################################
+######################### Personal Code here ######################## ############
 p = gestore_pipeline(file_configurazione,
                      ipc_uscita,
                      lock_ipc_uscita,

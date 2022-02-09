@@ -17,11 +17,18 @@ from time            import sleep
 ATTESA_CICLO_PRINCIPALE = 0.01
 
 class oggetto(Process):
-    """Oggetto
+    """
+    Oggetto
 
     Classe base per tutti gli oggetti del framework. Ha le caratterisiche di
     base per la gestione del processo associato ed imposta ed avvia il Gestore
     Segnali dell'oggetto
+
+    Object
+
+    Base class for all framework objects. It has the characteristics of
+    basis for the management of the associated process and sets and starts the Manager
+    Object signals
     """
     def __init__(self,
                  coda_ipc_entrata,
@@ -29,18 +36,23 @@ class oggetto(Process):
                  coda_ipc_uscita,
                  lock_ipc_uscita):
         #################### Inizializzazione oggetto ##########################
+        ##################### Object initialization ###########################
         super().__init__()
-        logging.info("oggetto inizializzazione")
+        logging.info("oggetto inizializzazione") # initialization object
         self.impostazioni_in_aggiornamento = 0
         self.stato                         = "idle"
         # Coda in cui il Gestore Segali mette i segnali ricevuti
+        # Queue where the Signal Manager puts the received signals
         self.coda_segnali_entrata          = Queue()
         self.lock_segnali_entrata          = Lock()
         # Coda in cui l'oggetto mette i segnali da inviare all'esterno. È presa
         # in carico dal Gestore Segnali
+        # Queue where the object puts the signals to send out. It is taken
+        # charged by the Signal Manager
         self.coda_segnali_uscita           = Queue()
         self.lock_segnali_uscita           = Lock()
         ##### Impostazione, inizializzazione ed avvio del Gestore Segnali ######
+        ##### Setting, initializing and starting the Signal Manager ######
         self.gestore_segnali      = gestore_segnali(type(self).__name__,
                                                       coda_ipc_entrata,
                                                       lock_ipc_entrata,
@@ -52,24 +64,33 @@ class oggetto(Process):
                                                       self.lock_segnali_uscita)
         self.gestore_segnali.start()
         sleep(0.01)
-        logging.info(str(type(self).__name__) + ": avviando gestore segnali")
+        logging.info(str(type(self).__name__) + ": avviando gestore segnali") # starting signal manager
         with self.lock_segnali_uscita:
-            self.coda_segnali_uscita.put_nowait(["avvia","gestore_segnali"])
+            self.coda_segnali_uscita.put_nowait(["avvia","gestore_segnali"]) # start "," signal_manager "
         ################## Fine Inizializzazione oggetto #######################
-        logging.info(type(self).__name__ + " inizializzato")
+        ################### End Object initialization ########################
+        logging.info(type(self).__name__ + " inizializzato") # initialized
     def run(self):
-        """Punto d'entrata del processo/thread"""
-        logging.info(type(self).__name__ + " creato")
+        """
+        Punto d'entrata del processo/thread
+        Entry point of the process / thread
+        """
+        logging.info(type(self).__name__ + " creato") # created
         # Entra nello stato richiesto
+        # Enter the required state
         while True:
-            logging.info(type(self).__name__ + " entrando in " + self.stato)
+            logging.info(type(self).__name__ + " entrando in " + self.stato) # entering
             s = getattr(self,self.stato)()
             if isinstance(s,int):
                 if s != 0:
                     break
         return int(s)
     def idle(self):
-        """Stato Idle"""
+        """
+        Stato Idle
+
+        Idle state
+        """
 
         logging.info(type(self).__name__ + " idle")
 
@@ -150,22 +171,25 @@ class oggetto(Process):
 
             sleep(ATTESA_CICLO_PRINCIPALE)
     def avvia(self):
-        """Stato Avviato"""
+        """Stato Avviato - Status Started"""
         pass
     def ferma(self):
-        """Stato Fermato"""
+        """Stato Fermato - Status Stopped"""
         pass
     def termina(self):
-        """Stato Terminazione"""
+        """Stato Terminazione - Status Termination"""
         pass
     def sospendi(self):
-        """Stato Sospensione"""
+        """Stato Sospensione - Status Suspension"""
         pass
     def uccidi(self):
-        """Stato Uccisione"""
+        """Stato Uccisione - Status Killing"""
         pass
     def leggi_segnale(self):
-        """Lettura del primo segnale in entrata"""
+        """
+        Lettura del primo segnale in entrata
+        Reading of the first incoming signal
+        """
 
         pacchetto_segnale = []
         segnale           = ""
@@ -182,17 +206,17 @@ class oggetto(Process):
                     logging.error(type(self).__name__ + str(e))
                     raise
             else:
-                raise "Coda segnali entrata vuota"
+                raise "Coda segnali entrata vuota" # Entry queue empty
         if len(pacchetto_segnale) == 4:
             segnale,mittente,destinatario,timestamp = pacchetto_segnale
         elif len(pacchetto_segnale) == 3:
             segnale,mittente,timestamp = pacchetto_segnale
         elif len(pacchetto_segnale) == 0:
-            raise "Nessun sengale"
+            raise "Nessun sengale" # No signal
         else:
-            raise "Segnale mal formato"
+            raise "Segnale mal formato" # Badly formed signal
         if segnale == "":
-            raise "Segnale vuoto"
+            raise "Segnale vuoto" # Empty signal
         elif segnale == "stop":
             # with self.lock_segnali_uscita:
             #     if not self.coda_segnali_uscita.full():
@@ -205,7 +229,7 @@ class oggetto(Process):
             #         raise "Coda Segnali Uscita piena"
             
             try:
-                self.scrivi_segnale(["stop","gestore_segnali"])
+                self.scrivi_segnale(["stop","gestore_segnali"]) # stop "," signal_manager
             except:
                 e = sys.exc_info()[0]
                 logging.error(type(self).__name__ + str(e))
@@ -223,5 +247,5 @@ class oggetto(Process):
                     logging.error(type(self).__name__ + str(e))
                     raise
             else:
-                raise "Coda Segnali Uscita piena"
+                raise "Coda Segnali Uscita piena - Signal Queue Output full"
         return stato
