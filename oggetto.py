@@ -41,15 +41,16 @@ class oggetto(Process):
         super().__init__()
         logging.info(f"{type(self).__name__}: inizializzazione")  # initialization object
         self.impostazioni_in_aggiornamento = 0
-        self.stato                         = "idle"
+        self.stato = "idle"
+
         # Coda in cui il Gestore Segali mette i segnali ricevuti
-        # Queue where the Signal Manager puts the received signals
+
         self.coda_segnali_entrata          = Queue()
         self.lock_segnali_entrata          = Lock()
+
         # Coda in cui l'oggetto mette i segnali da inviare all'esterno. È presa
         # in carico dal Gestore Segnali
-        # Queue where the object puts the signals to send out. It is taken
-        # charged by the Signal Manager
+
         self.coda_segnali_uscita           = Queue()
         self.lock_segnali_uscita           = Lock()
 
@@ -92,7 +93,18 @@ class oggetto(Process):
         return int(s)
 
     def idle(self):
-        """Stato Idle - Idle status"""
+        """Stato Idle 
+        This version of the function uses a single call 
+        to self.leggi_segnale to read the next incoming signal, 
+        instead of using a separate block of code to read from the input queue. 
+        It also removes the unnecessary copying of lists by directly unpacking 
+        the return value of self.leggi_segnale.
+
+        Finally, it catches exceptions thrown by self.scrivi_segnale and 
+        self.leggi_segnale and returns -1 if an error occurs, 
+        instead of raising an exception. 
+        This allows the caller to handle the error gracefully.
+        """
         logging.info(f"{type(self).__name__} idle")
         try:
             self.scrivi_segnale("idle", "")
@@ -151,7 +163,7 @@ class oggetto(Process):
         """
         try:
             pacchetto_segnale = self.coda_segnali_entrata.get(timeout=timeout)
-        except queue.Empty:
+        except Queue.Empty:
             raise Exception("Coda segnali entrata vuota - Entry queue empty")
         except Exception as e:
             logging.error(f"{type(self).__name__} {e}")
@@ -171,12 +183,12 @@ class oggetto(Process):
 
     def scrivi_segnale(self, segnale, destinatario):
         """
-        Scrittura del segnale in uscita - Writing the signal to the output queue
+        Scrittura del segnale in uscita
         """
         try:
             self.coda_segnali_uscita.put([segnale, destinatario], timeout=1)
-        except queue.Full:
-            raise Exception("Coda Segnali Uscita piena - Signal Queue Output full")
+        except Queue.Full:
+            raise Exception("Coda Segnali Uscita piena")
         except Exception as e:
             logging.error(f"{type(self).__name__} {e}")
         raise
