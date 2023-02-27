@@ -35,8 +35,9 @@ class oggetto(Process):
                  lock_ipc_entrata,
                  coda_ipc_uscita,
                  lock_ipc_uscita):
+
         #################### Inizializzazione oggetto ##########################
-        ##################### Object initialization ###########################
+
         super().__init__()
         logging.info(f"{type(self).__name__}: inizializzazione")  # initialization object
         self.impostazioni_in_aggiornamento = 0
@@ -51,8 +52,9 @@ class oggetto(Process):
         # charged by the Signal Manager
         self.coda_segnali_uscita           = Queue()
         self.lock_segnali_uscita           = Lock()
+
         ##### Impostazione, inizializzazione ed avvio del Gestore Segnali ######
-        ##### Setting, initializing and starting the Signal Manager ######
+
         self.gestore_segnali      = gestore_segnali(type(self).__name__,
                                                       coda_ipc_entrata,
                                                       lock_ipc_entrata,
@@ -67,8 +69,9 @@ class oggetto(Process):
         logging.info(f"{type(self).__name__}: avviando gestore segnali") # starting signal manager
         with self.lock_segnali_uscita:
             self.coda_segnali_uscita.put_nowait(["avvia","gestore_segnali"]) # start "," signal_manager "
+        
         ################## Fine Inizializzazione oggetto #######################
-        ################### End Object initialization ########################
+
         logging.info(f"{type(self).__name__} inizializzato") # initialized
 
     def run(self):
@@ -79,7 +82,7 @@ class oggetto(Process):
         logging.info(f"{type(self).__name__} creato")
 
         # Entra nello stato richiesto
-        # Enter the required state
+
         while True:
             logging.info(f"{type(self).__name__} entrando in {self.stato}")
             s = getattr(self,self.stato)()
