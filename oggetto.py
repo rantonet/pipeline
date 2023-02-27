@@ -38,7 +38,7 @@ class oggetto(Process):
         #################### Inizializzazione oggetto ##########################
         ##################### Object initialization ###########################
         super().__init__()
-        logging.info("oggetto inizializzazione") # initialization object
+        logging.info(f"{type(self).__name__}: inizializzazione")  # initialization object
         self.impostazioni_in_aggiornamento = 0
         self.stato                         = "idle"
         # Coda in cui il Gestore Segali mette i segnali ricevuti
@@ -64,115 +64,72 @@ class oggetto(Process):
                                                       self.lock_segnali_uscita)
         self.gestore_segnali.start()
         sleep(0.01)
-        logging.info(str(type(self).__name__) + ": avviando gestore segnali") # starting signal manager
+        logging.info(f"{type(self).__name__}: avviando gestore segnali") # starting signal manager
         with self.lock_segnali_uscita:
             self.coda_segnali_uscita.put_nowait(["avvia","gestore_segnali"]) # start "," signal_manager "
         ################## Fine Inizializzazione oggetto #######################
         ################### End Object initialization ########################
-        logging.info(type(self).__name__ + " inizializzato") # initialized
+        logging.info(f"{type(self).__name__} inizializzato") # initialized
+
     def run(self):
         """
         Punto d'entrata del processo/thread
         Entry point of the process / thread
         """
-        logging.info(type(self).__name__ + " creato") # created
+        logging.info(f"{type(self).__name__} creato")
+
         # Entra nello stato richiesto
         # Enter the required state
         while True:
-            logging.info(type(self).__name__ + " entrando in " + self.stato) # entering
+            logging.info(f"{type(self).__name__} entrando in {self.stato}")
             s = getattr(self,self.stato)()
             if isinstance(s,int):
                 if s != 0:
                     break
         return int(s)
+
     def idle(self):
-        """
-        Stato Idle
-
-        Idle state
-        """
-
-        logging.info(type(self).__name__ + " idle")
-
-        pacchetto_segnale_entrata = []
-        segnale                   = ""
-        mittente                  = ""
-        destinatario              = ""
-        timestamp                 = 0
-
-        # with self.lock_segnali_uscita:
-        #     if not self.coda_segnali_uscita.full():
-        #         self.coda_segnali_uscita.put_nowait(["idle",""])
-
+        """Stato Idle - Idle status"""
+        logging.info(f"{type(self).__name__} idle")
         try:
-            self.scrivi_segnale("idle","")
-        except:
-            e = sys.exc_info()[0]
-            logging.info(type(self).__name__ + str(e))
-
+            self.scrivi_segnale("idle", "")
+        except Exception as e:
+            logging.error(f"{type(self).__name__} {e}")
+            return -1
+        
         while True:
-            pacchetto_segnale_entrata[:] = []
-            segnale                      = ""
-            mittente                     = ""
-            destinatario                 = ""
-            timestamp                    = 0
-
-            # with self.lock_segnali_entrata:
-            #     if not self.coda_segnali_entrata.empty():
-            #         pacchetto_segnale_entrata[:] = self.coda_segnali_entrata.get_nowait()
-            # if len(pacchetto_segnale_entrata) == 4:
-            #     segnale,mittente,destinatario,timestamp = pacchetto_segnale_entrata
-            #     pacchetto_segnale_entrata[:] = []
-            # elif len(pacchetto_segnale_entrata) == 3:
-            #     segnale,mittente,timestamp = pacchetto_segnale_entrata
-            #     pacchetto_segnale_entrata[:] = []
-            # elif len(pacchetto_segnale_entrata) == 0:
-            #     pass
-            # else:
-            #     with self.lock_segnali_uscita:
-            #         if not self.coda_segnali_uscita.full():
-            #             self.coda_segnali_uscita.put_nowait(["segnale mal formato",""])
-            #     pacchetto_segnale_entrata[:] = []
-            #     sleep(ATTESA_CICLO_PRINCIPALE)
-            #     continue
-
             try:
-                segnale,mittente,destinatario,timestamp = self.leggi_segnale()
-            except:
-                e = sys.exc_info()[0]
-                logging.info(type(self).__name__ + str(e))
-
+                segnale, mittente, destinatario, timestamp = self.leggi_segnale()
+            except Exception as e:
+                logging.error(f"{type(self).__name__} {e}")
+                return -1
+            
             if segnale == "stop":
-                # with self.lock_segnali_uscita:
-                #     if not self.coda_segnali_uscita.full():
-                #         self.coda_segnali_uscita.put_nowait(["stop","gestore_segnali"])
-
                 try:
-                    self.scrivi_segnale(segnale,"gestore_segnali")
-                    return int(-1)
-                except:
-                    e = sys.exc_info()[0]
-                    logging.info(type(self).__name__ + str(e))
-            else:
-                if segnale in dir(self):
-                    self.stato = segnale
-                    return 0
-                else:
-                    # with self.lock_segnali_uscita:
-                    #     if not self.coda_segnali_uscita.full():
-                    #         self.coda_segnali_uscita.put_nowait(["segnale non valido",""])
-
-                    try:
-                        self.scrivi_segnale("segnale non valido","")
-                        return int(-1)
-                    except:
-                        e = sys.exc_info()[0]
-                        logging.info(type(self).__name__ + str(e))
-
+                    self.scrivi_segnale(segnale, "gestore_segnali")
+                except Exception as e:
+                    logging.error(f"{type(self).__name__} {e}")
+                    return -1
+                
+                return -1
+            
+            if hasattr(self, segnale):
+                self.stato = segnale
+                return 0
+            
+            try:
+                self.scrivi_segnale("segnale non valido", "")
+            except Exception as e:
+                logging.error(f"{type(self).__name__} {e}")
+                return -1
+            
             sleep(ATTESA_CICLO_PRINCIPALE)
-    def avvia(self):
+
+    @staticmethod
+    def avvia():
         """Stato Avviato - Status Started"""
         pass
+
     def ferma(self):
         """Stato Fermato - Status Stopped"""
         pass
@@ -185,67 +142,41 @@ class oggetto(Process):
     def uccidi(self):
         """Stato Uccisione - Status Killing"""
         pass
-    def leggi_segnale(self):
+    def leggi_segnale(self, timeout=1):
         """
-        Lettura del primo segnale in entrata
-        Reading of the first incoming signal
+        Lettura del primo segnale in entrata - Reading of the first incoming signal
         """
-
-        pacchetto_segnale = []
-        segnale           = ""
-        mittente          = ""
-        destinatario      = ""
-        timestamp         = 0
-
-        with self.coda_segnali_entrata:
-            if not self.coda_segnali_entrata.empty():
-                try:
-                    pacchetto_segnale[:] = self.coda_segnali_entrata.get_nowait()
-                except:
-                    e = sys.exc_info()[0]
-                    logging.error(type(self).__name__ + str(e))
-                    raise
-            else:
-                raise "Coda segnali entrata vuota" # Entry queue empty
-        if len(pacchetto_segnale) == 4:
-            segnale,mittente,destinatario,timestamp = pacchetto_segnale
-        elif len(pacchetto_segnale) == 3:
-            segnale,mittente,timestamp = pacchetto_segnale
-        elif len(pacchetto_segnale) == 0:
-            raise "Nessun sengale" # No signal
-        else:
-            raise "Segnale mal formato" # Badly formed signal
-        if segnale == "":
-            raise "Segnale vuoto" # Empty signal
-        elif segnale == "stop":
-            # with self.lock_segnali_uscita:
-            #     if not self.coda_segnali_uscita.full():
-            #         try:
-            #             self.coda_segnali_uscita.put_nowait(["stop","gestore_segnali"])
-            #         except:
-            #             e = sys.exc_info()[0]
-            #             logging.error(type(self).__name__ + str(e))
-            #     else:
-            #         raise "Coda Segnali Uscita piena"
-            
+        try:
+            pacchetto_segnale = self.coda_segnali_entrata.get(timeout=timeout)
+        except queue.Empty:
+            raise Exception("Coda segnali entrata vuota - Entry queue empty")
+        except Exception as e:
+            logging.error(f"{type(self).__name__} {e}")
+        raise
+    
+        segnale, mittente, destinatario, timestamp = pacchetto_segnale + [""] * (4 - len(pacchetto_segnale))
+    
+        if segnale == "stop":
             try:
-                self.scrivi_segnale(["stop","gestore_segnali"]) # stop "," signal_manager
-            except:
-                e = sys.exc_info()[0]
-                logging.error(type(self).__name__ + str(e))
-                raise
-        return [segnale,mittente,destinatario,timestamp]
-    def scrivi_segnale(self,segnale,destinatario):
-        """Lettura del segnale in uscita"""
-        stato = 0
-        with self.lock_segnali_uscita:
-            if not self.coda_segnali_uscita.full():
-                try:
-                    self.coda_segnali_uscita.put_nowait([segnale,destinatario])
-                except:
-                    e = sys.exc_info()[0]
-                    logging.error(type(self).__name__ + str(e))
-                    raise
-            else:
-                raise "Coda Segnali Uscita piena - Signal Queue Output full"
-        return stato
+                self.scrivi_segnale(segnale, "gestore_segnali")
+            except Exception as e:
+                logging.error(f"{type(self).__name__} {e}")
+            raise
+    
+        return [segnale, mittente, destinatario, timestamp]
+
+
+    def scrivi_segnale(self, segnale, destinatario):
+        """
+        Scrittura del segnale in uscita - Writing the signal to the output queue
+        """
+        try:
+            self.coda_segnali_uscita.put([segnale, destinatario], timeout=1)
+        except queue.Full:
+            raise Exception("Coda Segnali Uscita piena - Signal Queue Output full")
+        except Exception as e:
+            logging.error(f"{type(self).__name__} {e}")
+        raise
+    
+        return 0
+
